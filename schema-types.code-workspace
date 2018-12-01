@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../json"
+		},
+		{
+			"path": "../schema"
+		},
+		{
+			"path": "C:/github.com/ts-common/string-map"
+		}
+	],
+	"settings": {
+		"typescript.tsdk": "./node_modules/typescript/lib"
+	}
+}

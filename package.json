@@ -1,0 +1,44 @@
+{
+  "name": "@ts-common/schema-types",
+  "version": "0.0.0",
+  "description": "Compile-time transformation of JSON-Schema to TypeScript types",
+  "main": "dist/index.js",
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/index.js.map",
+    "dist/index.d.ts.map",
+    "src/index.ts"
+  ],
+  "scripts": {
+    "tsc": "tsc",
+    "test": "tsc && nyc mocha",
+    "prepack": "npm install && tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ts-common/schema-types.git"
+  },
+  "keywords": [
+    "schema",
+    "typescript",
+    "json"
+  ],
+  "author": "Sergey Shandar",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/ts-common/schema-types/issues"
+  },
+  "homepage": "https://github.com/ts-common/schema-types#readme",
+  "devDependencies": {
+    "@types/mocha": "^5.2.5",
+    "mocha": "^5.2.0",
+    "mocha-junit-reporter": "^1.18.0",
+    "nyc": "^13.1.0",
+    "typescript": "^3.2.1"
+  },
+  "dependencies": {
+    "@ts-common/json": "^0.1.6",
+    "@ts-common/schema": "0.0.5"
+  }
+}
