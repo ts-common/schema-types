@@ -42,7 +42,8 @@ describe("SchemaObjectType", () => {
 
 describe("MainObjectType", () => {
   it("undefined", () => {
-    const x: index.MainObjectType<undefined> = "something"
+    const i: json.Json = "something"
+    const x: index.MainObjectType<undefined> = i
     const r: json.Json = x
     assert.deepStrictEqual(r, "something")
   })
@@ -92,8 +93,47 @@ describe("MainObjectType", () => {
     assert.deepStrictEqual(r, "some string")
   })
   it(`["integer", "boolean"]`, () => {
-    const x: index.MainObjectType<["integer", "boolean"]> = 56
+    const i: number|boolean = 56
+    const x: index.MainObjectType<["integer", "boolean"]> = i
     const r: number|boolean = x
     assert.deepStrictEqual(r, 56)
+  })
+  it(`["integer", "number"]`, () => {
+    const i: number = 156
+    const x: index.MainObjectType<["integer", "number"]> = i
+    const r: number = x
+    assert.deepStrictEqual(r, 156)
+  })
+  it(`["integer", "boolean", "null"]`, () => {
+    const i: number|boolean|null = null
+    const x: index.MainObjectType<["integer", "boolean", "null"]> = i
+    const r: number|boolean|null = x
+    assert.deepStrictEqual(r, null)
+  })
+  it(`["integer", "boolean", "null", "string"]`, () => {
+    const i: number|boolean|null|string = "null"
+    const x: index.MainObjectType<["integer", "boolean", "null", "string"]> = i
+    const r: number|boolean|null|string = x
+    assert.deepStrictEqual(r, "null")
+  })
+  it(`["integer", "boolean", "null", "string", "array"]`, () => {
+    const i: number|boolean|null|string|number[] = [34]
+    const x: index.MainObjectType<["integer", "boolean", "null", "string", "array"]> = i
+    const r: number|boolean|null|string|json.JsonArray = x
+    assert.deepStrictEqual(r, [34])
+  })
+  it(`["integer", "boolean", "null", "string", "array", "object"]`, () => {
+    const i: number|boolean|null|string|number[]|{} = {}
+    const x: index.MainObjectType<["integer", "boolean", "null", "string", "array", "object"]> = i
+    const r: json.Json = x
+    assert.deepStrictEqual(r, {})
+  })
+  it(`["integer", "boolean", "null", "string", "array", "object", "number"]`, () => {
+    const i: number|boolean|null|string|number[]|{} = 56.7
+    const x: index.MainObjectType<
+        ["integer", "boolean", "null", "string", "array", "object", "number"]
+      > =i
+    const r: json.Json = x
+    assert.deepStrictEqual(r, 56.7)
   })
 })

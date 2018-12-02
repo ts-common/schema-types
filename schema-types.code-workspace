@@ -10,10 +10,13 @@
 			"path": "../schema"
 		},
 		{
-			"path": "C:/github.com/ts-common/string-map"
+			"path": "../string-map"
+		},
+		{
+			"path": "../tuple"
 		}
 	],
 	"settings": {
-		"typescript.tsdk": "./node_modules/typescript/lib"
+		"typescript.tsdk": "schema-types/node_modules/typescript/lib"
 	}
 }
