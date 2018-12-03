@@ -80,8 +80,11 @@ describe("Compile Time", () => {
     assert.deepStrictEqual(rn, 89)
   })
   it("MainObject", () => {
-    typeEqualAssert<index.MainObject<{}>, json.Json>(true)
+    typeEqualAssert<index.MainObject<undefined>, index.Json>(true)
+    typeEqualAssert<index.MainObject<{}>, index.Json>(true)
     typeEqualAssert<index.MainObject<{ type: "boolean" }>, boolean>(true)
     typeEqualAssert<index.MainObject<{ type: ["string"|"null"] }>, null|string>(true)
+    typeEqualAssert<index.MainObjectType<"array", {}>, index.JsonArray>(true)
+    typeEqualAssert<index.MainObject<{ type: "array" }>, index.JsonArray>(true)
   })
 })

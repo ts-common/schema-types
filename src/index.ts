@@ -4,7 +4,7 @@ import * as tuple from "@ts-common/tuple"
 
 export type PropertyX<T, K extends keyof T> = T[K]
 
-export type Property<B, T extends B, K extends keyof B> = unknown extends T[K] ? undefined : T[K]
+export type Property<B, T extends B, K extends keyof B, D> = unknown extends T[K] ? D : T[K]
 
 export interface ArrayType<Items extends SchemaMainObject|undefined> extends
   ReadonlyArray<MainObject<Items>>
@@ -78,7 +78,7 @@ export type SchemaMainObjectType =
   >
 
 export type Type<T extends SchemaMainObjectType, Items extends SchemaMainObject> =
-  T extends undefined ? json.Json : // SimpleTypes<schema.SimpleTypes, Items> :
+  T extends undefined ? Json : // SimpleTypes<schema.SimpleTypes, Items> :
   T extends schema.SimpleTypes ? SimpleTypes<T, Items> :
   T extends tuple.Tuple0 ?
     void :
@@ -147,5 +147,5 @@ export interface SchemaMainObject {
 
 export type MainObject<T extends SchemaMainObject|undefined> =
   T extends SchemaMainObject ?
-    MainObjectType<Property<SchemaMainObject, T, "type">, Property<SchemaMainObject, T, "items">> :
-  json.Json
+    MainObjectType<Property<SchemaMainObject, T, "type", undefined>, Property<SchemaMainObject, T, "items", {}>> :
+  Json
