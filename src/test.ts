@@ -1,139 +1,87 @@
 import * as index from "./index"
-import * as assert from "assert"
 import * as json from "@ts-common/json"
+import * as schema from "@ts-common/schema"
+import * as iterator from "@ts-common/iterator"
+import * as assert from "assert"
 
-describe("SchemaObjectType", () => {
-  it("number", () => {
-    const x: index.SimpleTypes<"number"> = 5
-    const r: number = x
-    assert.strictEqual(r, 5)
-  })
-  it("integer", () => {
-    const x: index.SimpleTypes<"integer"> = 5
-    const r: number = x
-    assert.strictEqual(r, 5)
-  })
-  it("string", () => {
-    const x: index.SimpleTypes<"string"> = "s"
-    const r: string = x
-    assert.strictEqual(r, "s")
-  })
-  it("null", () => {
-    const x: index.SimpleTypes<"null"> = null
-    const r: null = x
-    assert.strictEqual(r, null)
-  })
-  it("boolean", () => {
-    const x: index.SimpleTypes<"boolean"> = true
-    const r: boolean = x
-    assert.strictEqual(r, true)
-  })
-  it("object", () => {
-    const x: index.SimpleTypes<"object"> = {}
-    const r: json.JsonObject = x
-    assert.deepStrictEqual(r, {})
-  })
-  it("array", () => {
-    const x: index.SimpleTypes<"array"> = []
-    const r: json.JsonArray = x
-    assert.deepStrictEqual(r, [])
-  })
-})
+type Equal<A, B> = A | B extends A & B ? true : false
 
-describe("MainObjectType", () => {
-  it("undefined", () => {
-    const i: json.Json = "something"
-    const x: index.MainObjectType<undefined> = i
-    const r: json.Json = x
-    assert.deepStrictEqual(r, "something")
+const typeEqualAssert = <A, B>(_true: Equal<A, B>) => {}
+
+typeEqualAssert<number, number>(true)
+typeEqualAssert<number, string>(false)
+typeEqualAssert<never, never>(true)
+typeEqualAssert<boolean|null, boolean>(false)
+
+describe("Compile Time", () => {
+  it("SimpleTypes", () => {
+    typeEqualAssert<index.SimpleTypes<"number", undefined>, number>(true)
+    typeEqualAssert<index.SimpleTypes<"integer", undefined>, number>(true)
+    typeEqualAssert<index.SimpleTypes<"string", undefined>, string>(true)
+    typeEqualAssert<index.SimpleTypes<"null", undefined>, null>(true)
+    typeEqualAssert<index.SimpleTypes<"boolean", undefined>, boolean>(true)
+    typeEqualAssert<index.SimpleTypes<"object", undefined>, json.JsonObject>(true)
+    typeEqualAssert<index.SimpleTypes<"array", undefined>, json.JsonArray>(true)
+
+    // example
+    const validate = <T extends schema.SimpleTypes>(v: T): index.SimpleTypes<T, undefined> =>
+      (v === "number" ? 501.32 : undefined) as index.SimpleTypes<T, undefined>
+    const v = validate("number")
+    assert.deepStrictEqual(v, 501.32)
   })
-  it("number", () => {
-    const x: index.MainObjectType<"number"> = 5
-    const r: number = x
-    assert.strictEqual(r, 5)
+  it("MainObjectType", () => {
+    typeEqualAssert<index.MainObjectType<undefined>, json.Json>(true)
+    typeEqualAssert<index.MainObjectType<"number">, number>(true)
+    typeEqualAssert<index.MainObjectType<"integer">, number>(true)
+    typeEqualAssert<index.MainObjectType<"string">, string>(true)
+    typeEqualAssert<index.MainObjectType<"null">, null>(true)
+    typeEqualAssert<index.MainObjectType<"boolean">, boolean>(true)
+    typeEqualAssert<index.MainObjectType<"object">, json.JsonObject>(true)
+    typeEqualAssert<index.MainObjectType<"array">, index.JsonArray>(true)
+    typeEqualAssert<index.MainObjectType<[]>, void>(true)
+    typeEqualAssert<index.MainObjectType<["string"]>, string>(true)
+    typeEqualAssert<index.MainObjectType<["integer", "boolean"]>, number|boolean>(true)
+    typeEqualAssert<index.MainObjectType<["integer", "number"]>, number>(true)
+    typeEqualAssert<index.MainObjectType<["integer", "boolean", "null"]>, number|boolean|null>(true)
+    typeEqualAssert<
+      index.MainObjectType<["integer", "boolean", "null", "string"]>,
+      number|boolean|null|string
+    >(true)
+    typeEqualAssert<
+      index.MainObjectType<["integer", "boolean", "null", "string", "array"]>,
+      number|boolean|null|string|index.ArrayType<{}>
+    >(true)
+    typeEqualAssert<
+      index.MainObjectType<["integer", "boolean", "null", "string", "array", "object"]>,
+      index.Json
+    >(true)
+    typeEqualAssert<
+      index.MainObjectType<["integer", "boolean", "null", "string", "array", "object", "number"]>,
+      index.Json
+    >(true)
+
+    // example
+    const validate = <T extends index.SchemaMainObjectType>(v: T): index.MainObjectType<T> => {
+      if (iterator.isArray(v)) {
+        for (const i of v) {
+          if (i === "string") {
+            return "some string" as index.MainObjectType<T>
+          }
+        }
+      }
+      if (v === "number") {
+        return 89 as index.MainObjectType<T>
+      }
+      return undefined as index.MainObjectType<T>
+    }
+    const rs = validate(["boolean", "string"])
+    assert.deepStrictEqual(rs, "some string")
+    const rn = validate("number")
+    assert.deepStrictEqual(rn, 89)
   })
-  it("integer", () => {
-    const x: index.MainObjectType<"integer"> = 5
-    const r: number = x
-    assert.strictEqual(r, 5)
-  })
-  it("string", () => {
-    const x: index.MainObjectType<"string"> = "s"
-    const r: string = x
-    assert.strictEqual(r, "s")
-  })
-  it("null", () => {
-    const x: index.MainObjectType<"null"> = null
-    const r: null = x
-    assert.strictEqual(r, null)
-  })
-  it("boolean", () => {
-    const x: index.MainObjectType<"boolean"> = false
-    const r: boolean = x
-    assert.strictEqual(r, false)
-  })
-  it("object", () => {
-    const x: index.MainObjectType<"object"> = {}
-    const r: json.JsonObject = x
-    assert.deepStrictEqual(r, {})
-  })
-  it("array", () => {
-    const x: index.MainObjectType<"array"> = []
-    const r: json.JsonArray = x
-    assert.deepStrictEqual(r, [])
-  })
-  it("[]", () => {
-    const x: index.MainObjectType<[]> = undefined as never
-    const r: never = x
-    assert.deepStrictEqual(r, undefined)
-  })
-  it('["string"]', () => {
-    const x: index.MainObjectType<["string"]> = "some string"
-    const r: string = x
-    assert.deepStrictEqual(r, "some string")
-  })
-  it(`["integer", "boolean"]`, () => {
-    const i: number|boolean = 56
-    const x: index.MainObjectType<["integer", "boolean"]> = i
-    const r: number|boolean = x
-    assert.deepStrictEqual(r, 56)
-  })
-  it(`["integer", "number"]`, () => {
-    const i: number = 156
-    const x: index.MainObjectType<["integer", "number"]> = i
-    const r: number = x
-    assert.deepStrictEqual(r, 156)
-  })
-  it(`["integer", "boolean", "null"]`, () => {
-    const i: number|boolean|null = null
-    const x: index.MainObjectType<["integer", "boolean", "null"]> = i
-    const r: number|boolean|null = x
-    assert.deepStrictEqual(r, null)
-  })
-  it(`["integer", "boolean", "null", "string"]`, () => {
-    const i: number|boolean|null|string = "null"
-    const x: index.MainObjectType<["integer", "boolean", "null", "string"]> = i
-    const r: number|boolean|null|string = x
-    assert.deepStrictEqual(r, "null")
-  })
-  it(`["integer", "boolean", "null", "string", "array"]`, () => {
-    const i: number|boolean|null|string|number[] = [34]
-    const x: index.MainObjectType<["integer", "boolean", "null", "string", "array"]> = i
-    const r: number|boolean|null|string|json.JsonArray = x
-    assert.deepStrictEqual(r, [34])
-  })
-  it(`["integer", "boolean", "null", "string", "array", "object"]`, () => {
-    const i: number|boolean|null|string|number[]|{} = {}
-    const x: index.MainObjectType<["integer", "boolean", "null", "string", "array", "object"]> = i
-    const r: json.Json = x
-    assert.deepStrictEqual(r, {})
-  })
-  it(`["integer", "boolean", "null", "string", "array", "object", "number"]`, () => {
-    const i: number|boolean|null|string|number[]|{} = 56.7
-    const x: index.MainObjectType<
-        ["integer", "boolean", "null", "string", "array", "object", "number"]
-      > =i
-    const r: json.Json = x
-    assert.deepStrictEqual(r, 56.7)
+  it("MainObject", () => {
+    typeEqualAssert<index.MainObject<{}>, json.Json>(true)
+    typeEqualAssert<index.MainObject<{ type: "boolean" }>, boolean>(true)
+    typeEqualAssert<index.MainObject<{ type: ["string"|"null"] }>, null|string>(true)
   })
 })
