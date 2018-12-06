@@ -41,7 +41,7 @@
   "dependencies": {
     "@ts-common/json": "^0.1.6",
     "@ts-common/schema": "^0.0.5",
-    "@ts-common/tuple": "^0.0.3",
+    "@ts-common/tuple": "^0.0.5",
     "tslib": "^1.9.3"
   }
 }
