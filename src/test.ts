@@ -1,7 +1,6 @@
 import { schema, meta, json } from "./index"
 import * as tscJson from "@ts-common/json"
 import * as assert from "assert"
-import * as iterator from "@ts-common/iterator"
 
 const typeEqualAssert = <A, B>(_true: meta.Equal<A, B>) => {}
 
@@ -11,113 +10,101 @@ typeEqualAssert<never, never>(true)
 typeEqualAssert<boolean|null, boolean>(false)
 
 describe("schema", () => {
-  it("MainObjectTypeNorm", () => {
-    typeEqualAssert<schema.MainObjectTypeNorm<undefined>, schema.SimpleTypes>(true)
-    typeEqualAssert<schema.MainObjectTypeNorm<[]>, schema.SimpleTypes>(true)
-    typeEqualAssert<schema.MainObjectTypeNorm<"number">, "number">(true)
-    typeEqualAssert<schema.MainObjectTypeNorm<["integer"]>, "integer">(true)
-    typeEqualAssert<schema.MainObjectTypeNorm<["integer", "string"]>, "string" | "integer">(true)
+  it("simpleTypes.FromMainObjectType", () => {
+    typeEqualAssert<schema.simpleTypes.FromMainObjectType<undefined>, schema.SimpleTypes>(true)
+    typeEqualAssert<schema.simpleTypes.FromMainObjectType<[]>, schema.SimpleTypes>(true)
+    typeEqualAssert<schema.simpleTypes.FromMainObjectType<"number">, "number">(true)
+    typeEqualAssert<schema.simpleTypes.FromMainObjectType<["integer"]>, "integer">(true)
+    typeEqualAssert<schema.simpleTypes.FromMainObjectType<["integer", "string"]>, "string" | "integer">(true)
   })
-  it("MainObjectNorm", () => {
-    typeEqualAssert<schema.MainObjectNorm<{}>, schema.SimpleTypes>(true)
-    typeEqualAssert<schema.MainObjectNorm<{ type: "boolean" }>, "boolean">(true)
-    typeEqualAssert<schema.MainObjectNorm<{ type: ["string"|"null"] }>, "null"|"string">(true)
-    typeEqualAssert<schema.MainObjectNorm<{ type: "array" }>, "array">(true)
-    typeEqualAssert<schema.MainObjectNorm<{ type: [] }>, schema.SimpleTypes>(true)
+  it("norm.FromMainObject", () => {
+    typeEqualAssert<schema.norm.FromMainObject<{}>, {}>(true)
+    typeEqualAssert<schema.norm.FromMainObject<{ type: "boolean" }>, { type: "boolean" }>(true)
+    typeEqualAssert<schema.norm.FromMainObject<{ type: ["string"|"null"] }>, { type: "null"|"string" }>(true)
+    typeEqualAssert<schema.norm.FromMainObject<{ type: "array" }>, { type: "array" }>(true)
+    typeEqualAssert<schema.norm.FromMainObject<{ type: [] }>, {}>(true)
+    typeEqualAssert<schema.norm.FromMainObject<{ type: "array", items: {} }>, { type: "array" }>(true)
+    typeEqualAssert<schema.norm.FromMainObject<
+      { type: "array", items: { type: ["number", "string"] } }>,
+      { type: "array", items: { type: "number"|"string" } }
+    >(true)
   })
-  it("MainNorm", () => {
-    typeEqualAssert<schema.MainNorm<true>, schema.SimpleTypes>(true)
-    typeEqualAssert<schema.MainNorm<false>, never>(true)
+  it("norm.FromMain", () => {
+    typeEqualAssert<schema.norm.FromMain<true>, {}>(true)
+    typeEqualAssert<schema.norm.FromMain<false>, never>(true)
     typeEqualAssert<
-      schema.MainNorm<{ type: ["boolean", "number", "null"] }>,
-      "boolean"|"null"|"number"
+      schema.norm.FromMain<{ type: ["boolean", "number", "null"] }>,
+      { type: "boolean"|"null"|"number" }
+    >(true)
+    typeEqualAssert<schema.norm.FromMain<{ type: "array" }>, { type: "array" }>(true)
+    typeEqualAssert<schema.norm.FromMain<{ type: ["array", "boolean"] }>, { type: "array"|"boolean" }>(true)
+    typeEqualAssert<
+      schema.norm.FromMain<{ type: ["array", "string"], items: { type: "number" } }>,
+      { type: "array"|"string", items: { type: "number" }}
+    >(true)
+    typeEqualAssert<
+      schema.norm.FromMain<{ type: ["string"], items: { type: "number" } }>,
+      { type: "string", items: { type: "number" }}
+    >(false)
+    typeEqualAssert<
+      schema.norm.FromMain<{ type: ["string"], items: { type: "number" } }>,
+      { type: "string" }
+    >(true)
+    typeEqualAssert<
+      schema.norm.FromMain<{ items: { type: "number" } }>,
+      { items: { type: "number" } }
     >(true)
   })
 })
 
 describe("json", () => {
-  it("SimpleTypes", () => {
-    typeEqualAssert<json.SimpleTypes<"number">, number>(true)
-    typeEqualAssert<json.SimpleTypes<"integer">, number>(true)
-    typeEqualAssert<json.SimpleTypes<"string">, string>(true)
-    typeEqualAssert<json.SimpleTypes<"null">, null>(true)
-    typeEqualAssert<json.SimpleTypes<"boolean">, boolean>(true)
-    typeEqualAssert<json.SimpleTypes<"object">, tscJson.JsonObject>(true)
-    typeEqualAssert<json.SimpleTypes<"array">, tscJson.JsonArray>(true)
-
-    // example
-    const validate = <T extends schema.SimpleTypes>(v: T): json.SimpleTypes<T> =>
-      (v === "number" ? 501.32 : undefined) as json.SimpleTypes<T>
-    const v = validate("number")
-    assert.deepStrictEqual(v, 501.32)
-  })
-  it("MainObjectType", () => {
-    typeEqualAssert<json.MainObjectType<undefined>, tscJson.Json>(true)
-    typeEqualAssert<json.MainObjectType<"number">, number>(true)
-    typeEqualAssert<json.MainObjectType<"integer">, number>(true)
-    typeEqualAssert<json.MainObjectType<"string">, string>(true)
-    typeEqualAssert<json.MainObjectType<"null">, null>(true)
-    typeEqualAssert<json.MainObjectType<"boolean">, boolean>(true)
-    typeEqualAssert<json.MainObjectType<"object">, tscJson.JsonObject>(true)
-    typeEqualAssert<json.MainObjectType<"array">, tscJson.JsonArray>(true)
-    typeEqualAssert<json.MainObjectType<[]>, tscJson.Json>(true)
-    typeEqualAssert<json.MainObjectType<["string"]>, string>(true)
-    typeEqualAssert<json.MainObjectType<["integer", "boolean"]>, number|boolean>(true)
-    typeEqualAssert<json.MainObjectType<["integer", "number"]>, number>(true)
-    typeEqualAssert<json.MainObjectType<["integer", "boolean", "null"]>, number|boolean|null>(true)
+  it("Types", () => {
+    typeEqualAssert<json.FromMain<true>, tscJson.Json>(true)
+    typeEqualAssert<json.FromMain<false>, never>(true)
+    typeEqualAssert<json.FromMain<{}>, tscJson.Json>(true)
+    typeEqualAssert<json.FromMain<{ type: "number" }>, number>(true)
+    typeEqualAssert<json.FromMain<{ type: ["number"|"string"] }>, number|string>(true)
+    typeEqualAssert<json.FromMain<{ type: ["array"|"string"] }>, tscJson.JsonArray|string>(true)
+    typeEqualAssert<json.FromMain<{ type: "array" }>, tscJson.JsonArray>(true)
+    typeEqualAssert<json.FromMain<{ type: ["array"], items: {} }>, tscJson.JsonArray>(true)
     typeEqualAssert<
-      json.MainObjectType<["integer", "boolean", "null", "string"]>,
-      number|boolean|null|string
+      json.FromMain<{ type: ["array"], items: { type: ["number", "boolean", "null"] } }>,
+      ReadonlyArray<number|boolean|null>
     >(true)
     typeEqualAssert<
-      json.MainObjectType<["integer", "boolean", "null", "string", "array"]>,
-      number|boolean|null|string|tscJson.JsonArray
+      json.FromMain<{ type: ["array"], items: { type: "array", items: { type: "boolean" } } }>,
+      ReadonlyArray<ReadonlyArray<boolean>>
     >(true)
     typeEqualAssert<
-      json.MainObjectType<["integer", "boolean", "null", "string", "array", "object"]>,
-      tscJson.Json
+      json.FromMain<{ type: ["array"], items: { type: "array", items: { type: "boolean" } } }>,
+      ReadonlyArray<ReadonlyArray<string>>
+    >(false)
+    typeEqualAssert<
+      json.FromMain<{ type: ["array", "string"], items: { type: "array", items: { type: "boolean" } } }>,
+      ReadonlyArray<ReadonlyArray<boolean>>|string
     >(true)
     typeEqualAssert<
-      json.MainObjectType<["integer", "boolean", "null", "string", "array", "object", "number"]>,
-      tscJson.Json
+      json.FromMain<{ items: { type: "number" }}>,
+      ReadonlyArray<number>|string|number|boolean|null|tscJson.JsonObject
     >(true)
-
-    // example
-    const create = <T extends schema.MainObjectType>(v: T): json.MainObjectType<T> => {
-      if (iterator.isArray(v)) {
-        if (v.length === 0) {
-          return "anything" as json.MainObjectType<T>
-        }
-        for (const i of v) {
-          if (i === "string") {
-            return "some string" as json.MainObjectType<T>
-          }
-        }
-      }
-      if (v === "number") {
-        return 89 as json.MainObjectType<T>
-      }
-      return "anything" as json.MainObjectType<T>
-    }
-    const dd = create([])
-    assert.deepStrictEqual(dd, "anything")
-    const rs = create(["boolean", "string"])
-    assert.deepStrictEqual(rs, "some string")
-    const rn = create("number")
-    assert.deepStrictEqual(rn, 89)
-  })
-  it("MainObject", () => {
-    typeEqualAssert<json.MainObject<{}>, tscJson.Json>(true)
-    typeEqualAssert<json.MainObject<{ type: "boolean" }>, boolean>(true)
-    typeEqualAssert<json.MainObject<{ type: ["string"|"null"] }>, null|string>(true)
-    typeEqualAssert<json.MainObject<{ type: "array" }>, tscJson.JsonArray>(true)
-  })
-  it("Main", () => {
-    typeEqualAssert<json.Main<true>, tscJson.Json>(true)
-    typeEqualAssert<json.Main<false>, never>(true)
+    typeEqualAssert<json.FromMain<{}>, tscJson.Json>(true)
+    typeEqualAssert<json.FromMain<{ type: "boolean" }>, boolean>(true)
+    typeEqualAssert<json.FromMain<{ type: ["string"|"null"] }>, null|string>(true)
+    typeEqualAssert<json.FromMain<{ type: "array" }>, tscJson.JsonArray>(true)
+    type Array = json.FromMain<{ type: "array", items: { type: "number" } }>
+    const a: ReadonlyArray<number> = [5]
+    const b: Array = a
+    const c: ReadonlyArray<number> = b
+    assert.deepStrictEqual(c, [5])
     typeEqualAssert<
-      schema.MainNorm<{ type: ["boolean", "number", "null"] }>,
-      "boolean"|"null"|"number"
+      json.FromMain<{ type: "array", items: { type: "number" } }>,
+      ReadonlyArray<number>
+    >(true)
+    typeEqualAssert<json.FromMain<true>, tscJson.Json>(true)
+    typeEqualAssert<json.FromMain<false>, never>(true)
+    typeEqualAssert<
+      json.FromMain<{ type: ["boolean", "number", "null"] }>,
+      boolean|null|number
     >(true)
   })
 })

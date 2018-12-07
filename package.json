@@ -1,6 +1,6 @@
 {
   "name": "@ts-common/schema-types",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Compile-time transformation of JSON-Schema to TypeScript types",
   "main": "dist/index.js",
   "files": [

@@ -3,8 +3,14 @@ import * as tscJson from "@ts-common/json"
 import * as tuple from "@ts-common/tuple"
 
 export namespace meta {
-  export type Property<B, T extends B, K extends keyof B, D = undefined> = unknown extends T[K] ? D : T[K]
+
+  export type Property<B, T extends B, K extends keyof B, D = undefined> =
+    unknown extends T[K] ? D :
+    undefined extends T[K] ? D :
+    T[K]
+
   export type Equal<A, B> = A | B extends A & B ? true : false
+
 }
 
 // https://tools.ietf.org/html/draft-handrews-json-schema-validation-01
@@ -12,55 +18,94 @@ export namespace schema {
 
   export type SimpleTypes = tscSchema.SimpleTypes
 
+  export namespace simpleTypes {
+    // returns T extends SimpleType
+    export type FromMainObjectType<T extends MainObjectType> =
+      T extends undefined|tuple.Tuple0 ? SimpleTypes :
+      T extends SimpleTypes ? T :
+      T extends Iterable<infer U> ? U :
+      never // error
+  }
+
   export type MainObjectType =
     undefined | //  validates against any instance
     SimpleTypes |
-    tuple.Tuples<SimpleTypes>
-
-  // returns T extends SimpleType
-  export type MainObjectTypeNorm<T extends MainObjectType> =
-    T extends undefined|tuple.Tuple0 ? SimpleTypes :
-    T extends SimpleTypes ? T :
-    T extends Iterable<infer U> ? U :
-    never // error
+    ReadonlyArray<SimpleTypes>
 
   export type MainObject = {
     readonly type?: MainObjectType
     readonly items?: Main
   }
 
-  export type Type = {
-    readonly type: SimpleTypes
-  }
+  export namespace mainObject {
 
-  // returns T extends SimpleType
-  export type MainObjectNorm<T extends MainObject> = MainObjectTypeNorm<meta.Property<MainObject, T, "type">>
+    export type GetType<T extends MainObject> =
+      simpleTypes.FromMainObjectType<meta.Property<MainObject, T, "type">>
+
+    export type GetItems<T extends MainObject> =
+      meta.Property<MainObject, T, "items", {}>
+  }
 
   export type Main = MainObject|boolean
 
-  // returns T extends SimpleType
-  export type MainNorm<T extends Main> =
-    T extends true ? SimpleTypes :
-    T extends false ? never :
-    T extends MainObject ? MainObjectNorm<T> :
-    never // error
+  export type Norm = {
+    readonly type?: SimpleTypes
+    readonly items?: Norm
+  }
+
+  export namespace norm {
+
+    // returns R extends SimpleTypes
+    export type GetType<T extends Norm> = meta.Property<Norm, T, "type", SimpleTypes>
+
+    export type GetItems<T extends Norm> = meta.Property<Norm, T, "items", {}>
+
+    export type FromSimpleTypes<Type extends SimpleTypes> =
+      SimpleTypes extends Type ? {} :
+      { readonly type: Type }
+
+    export type ItemsFromMainObject<Items extends MainObject> =
+      {} extends Items ? {} :
+      { readonly items: FromMainObject<Items> }
+
+    export type FromParameters<Type extends SimpleTypes, M extends MainObject> =
+      FromSimpleTypes<Type> &
+      ("array" extends Type ? ItemsFromMainObject<mainObject.GetItems<M>> : {})
+
+    // returns T extends Norm
+    export type FromMainObject<T extends MainObject> =
+      FromParameters<mainObject.GetType<T>, T>
+
+    // returns T extends Norm
+    export type FromMain<T extends Main> =
+      T extends true ? {} :
+      T extends false ? never :
+      T extends MainObject ? FromMainObject<T> :
+      never // error
+  }
 }
 
 export namespace json {
-  export type SimpleTypes<S extends schema.SimpleTypes> =
-    S extends "array" ? tscJson.JsonArray :
+
+  export interface SpecialArrayType<Items extends schema.Norm> extends ReadonlyArray<FromNorm<Items>> {}
+
+  export type ArrayType<Items extends schema.Norm> =
+    {} extends Items ? tscJson.JsonArray : SpecialArrayType<Items>
+
+  export type SimpleTypes<S extends schema.SimpleTypes, N extends schema.Norm> =
+    S extends "array" ? ArrayType<schema.norm.GetItems<N>> :
     S extends "boolean" ? boolean :
     S extends "integer" | "number" ? number :
     S extends "null" ? null :
     S extends "string" ? string :
     S extends "object" ? tscJson.JsonObject :
     never
-  export type MainObjectType<S extends schema.MainObjectType> =
-    SimpleTypes<schema.MainObjectTypeNorm<S>>
-  export type MainObject<S extends schema.MainObject> =
-    SimpleTypes<schema.MainObjectNorm<S>>
-  export type Main<S extends schema.Main> =
-    SimpleTypes<schema.MainNorm<S>>
+
+  export type FromNorm<S extends schema.Norm> =
+    SimpleTypes<schema.norm.GetType<S>, S>
+
+  export type FromMain<S extends schema.Main> =
+    FromNorm<schema.norm.FromMain<S>>
 }
 
 /*
