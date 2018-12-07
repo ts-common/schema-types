@@ -1,6 +1,6 @@
 import { schema, meta, json } from "./index"
-import * as tscJson from "@ts-common/json"
 import * as assert from "assert"
+import { SimpleTypes } from '@ts-common/schema';
 
 const typeEqualAssert = <A, B>(_true: meta.Equal<A, B>) => {}
 
@@ -11,7 +11,7 @@ typeEqualAssert<boolean|null, boolean>(false)
 
 describe("schema", () => {
   it("simpleTypes.FromMainObjectType", () => {
-    typeEqualAssert<schema.simpleTypes.FromMainObjectType<undefined>, schema.SimpleTypes>(true)
+    typeEqualAssert<schema.simpleTypes.FromMainObjectType<SimpleTypes>, schema.SimpleTypes>(true)
     typeEqualAssert<schema.simpleTypes.FromMainObjectType<[]>, schema.SimpleTypes>(true)
     typeEqualAssert<schema.simpleTypes.FromMainObjectType<"number">, "number">(true)
     typeEqualAssert<schema.simpleTypes.FromMainObjectType<["integer"]>, "integer">(true)
@@ -31,7 +31,7 @@ describe("schema", () => {
   })
   it("norm.FromMain", () => {
     typeEqualAssert<schema.norm.FromMain<true>, {}>(true)
-    typeEqualAssert<schema.norm.FromMain<false>, never>(true)
+    typeEqualAssert<schema.norm.FromMain<false>, false>(true)
     typeEqualAssert<
       schema.norm.FromMain<{ type: ["boolean", "number", "null"] }>,
       { type: "boolean"|"null"|"number" }
@@ -54,19 +54,61 @@ describe("schema", () => {
       schema.norm.FromMain<{ items: { type: "number" } }>,
       { items: { type: "number" } }
     >(true)
+    typeEqualAssert<
+      schema.norm.FromMain<{ additionalProperties: { type: "number" } }>,
+      { additionalProperties: { type: "number" } }
+    >(true)
+    typeEqualAssert<
+      schema.norm.FromMain<{ additionalProperties: { type: "number" }, type: "string" }>,
+      { type: "string" }
+    >(true)
+    typeEqualAssert<
+      schema.norm.FromMain<{
+        additionalProperties: { type: "number" },
+        items: { type: "string" }
+        type: ["string", "array", "object"]
+      }>,
+      {
+        type: "string"|"array"|"object",
+        items: { type: "string" },
+        additionalProperties: { type: "number" }
+      }
+    >(true)
+    typeEqualAssert<
+      schema.norm.FromMain<{ type: "object", properties: { x: { type: ["string", "number"] } } }>,
+      { type: "object", properties: { x: { type: "string"|"number" } } }
+    >(true)
+    typeEqualAssert<
+      schema.norm.FromMain<{ type: "object", properties: { x: { type: ["string", "number"] } } }>,
+      { type: "object", properties: { x: { type: "string"|"number" } } }
+    >(true)
+    const zzz: schema.norm.FromMain<{ type: "object", additionalProperties: false }> = {
+      type: "object",
+      additionalProperties: false
+    }
+    typeEqualAssert<typeof zzz.additionalProperties, false>(true)
+    typeEqualAssert<
+      schema.norm.FromMain<{ type: "object", additionalProperties: false }>,
+      { readonly type: "object", additionalProperties: false }
+    >(true)
+    typeEqualAssert<schema.mainObject.GetItems<{ items: false }>, false>(true)
+    typeEqualAssert<schema.norm.FromMain<{ items: false }>, { items: false }>(true)
+    typeEqualAssert<schema.norm.FromMain<{ properties: { a: false }}>, { properties: { a: false }}>(true)
+    typeEqualAssert<schema.norm.FromMain<{ required: ["aa", "bcd" ] }>, { required: "aa"|"bcd" }>(true)
+    typeEqualAssert<schema.norm.FromMain<{ required: [] }>, {}>(true)
   })
 })
 
 describe("json", () => {
   it("Types", () => {
-    typeEqualAssert<json.FromMain<true>, tscJson.Json>(true)
+    typeEqualAssert<json.FromMain<true>, json.Json>(true)
     typeEqualAssert<json.FromMain<false>, never>(true)
-    typeEqualAssert<json.FromMain<{}>, tscJson.Json>(true)
+    typeEqualAssert<json.FromMain<{}>, json.Json>(true)
     typeEqualAssert<json.FromMain<{ type: "number" }>, number>(true)
     typeEqualAssert<json.FromMain<{ type: ["number"|"string"] }>, number|string>(true)
-    typeEqualAssert<json.FromMain<{ type: ["array"|"string"] }>, tscJson.JsonArray|string>(true)
-    typeEqualAssert<json.FromMain<{ type: "array" }>, tscJson.JsonArray>(true)
-    typeEqualAssert<json.FromMain<{ type: ["array"], items: {} }>, tscJson.JsonArray>(true)
+    typeEqualAssert<json.FromMain<{ type: ["array"|"string"] }>, json.JsonArray|string>(true)
+    typeEqualAssert<json.FromMain<{ type: "array" }>, json.JsonArray>(true)
+    typeEqualAssert<json.FromMain<{ type: ["array"], items: {} }>, json.JsonArray>(true)
     typeEqualAssert<
       json.FromMain<{ type: ["array"], items: { type: ["number", "boolean", "null"] } }>,
       ReadonlyArray<number|boolean|null>
@@ -85,12 +127,12 @@ describe("json", () => {
     >(true)
     typeEqualAssert<
       json.FromMain<{ items: { type: "number" }}>,
-      ReadonlyArray<number>|string|number|boolean|null|tscJson.JsonObject
+      ReadonlyArray<number>|string|number|boolean|null|json.JsonObject
     >(true)
-    typeEqualAssert<json.FromMain<{}>, tscJson.Json>(true)
+    typeEqualAssert<json.FromMain<{}>, json.Json>(true)
     typeEqualAssert<json.FromMain<{ type: "boolean" }>, boolean>(true)
     typeEqualAssert<json.FromMain<{ type: ["string"|"null"] }>, null|string>(true)
-    typeEqualAssert<json.FromMain<{ type: "array" }>, tscJson.JsonArray>(true)
+    typeEqualAssert<json.FromMain<{ type: "array" }>, json.JsonArray>(true)
     type Array = json.FromMain<{ type: "array", items: { type: "number" } }>
     const a: ReadonlyArray<number> = [5]
     const b: Array = a
@@ -100,32 +142,101 @@ describe("json", () => {
       json.FromMain<{ type: "array", items: { type: "number" } }>,
       ReadonlyArray<number>
     >(true)
-    typeEqualAssert<json.FromMain<true>, tscJson.Json>(true)
+    typeEqualAssert<json.FromMain<true>, json.Json>(true)
     typeEqualAssert<json.FromMain<false>, never>(true)
     typeEqualAssert<
       json.FromMain<{ type: ["boolean", "number", "null"] }>,
       boolean|null|number
     >(true)
-  })
-})
-
-  /*
-  it("MainObject", () => {
-    typeEqualAssert<index.MainObject<undefined>, index.Json>(true)
-    typeEqualAssert<index.MainObject<{}>, index.Json>(true)
-    typeEqualAssert<index.MainObject<{ type: "boolean" }>, boolean>(true)
-    typeEqualAssert<index.MainObject<{ type: ["string"|"null"] }>, null|string>(true)
-    typeEqualAssert<index.MainObject<{ type: "array" }>, index.JsonArray>(true)
-
-    type Array = index.MainObject<{ type: "array", items: { type: "number" } }>
-    const a: ReadonlyArray<number> = [5]
-    const b: Array = a
-    const c: ReadonlyArray<number> = b
-    assert.deepStrictEqual(c, [5])
     typeEqualAssert<
-      index.MainObject<{ type: "array", items: { type: "number" } }>,
-      index.JsonArray<{type: "number"}>
+      json.FromMain<{ type: "object", additionalProperties: { type: "number" } }>,
+      { readonly [k in string]?: number }
+    >(true)
+    const x: json.FromMain<{ type: "object", additionalProperties: { type: "number" }}> = { x: 56 }
+    assert.deepStrictEqual(x.x, 56)
+    typeEqualAssert<
+      json.FromMain<{ additionalProperties: { type: "number" }, items: { type: "string" } }>,
+      { readonly [k in string]?: number }|string|number|null|boolean|ReadonlyArray<string>
+    >(true)
+    const xx: json.FromMain<{ type: "object", properties: { a: { type: "number" } } }> = { b: "56", a: 45 }
+    assert.strictEqual(xx.a, 45)
+    assert.strictEqual(xx.b, "56")
+    typeEqualAssert<
+      json.FromMain<{ type: "object", properties: { a: { type: "number" } } }>,
+      { readonly a?: number } & {}
+    >(true)
+    const zzz: { readonly a?: number } & { readonly [v in string]?: boolean|number } = {
+      a: 456,
+      b: 678,
+    }
+    assert.strictEqual(zzz.b, 678)
+    const zz: json.FromMain<{ type: "object", properties: { a: { type: "number" } }, additionalProperties: { type: "boolean"} }> = {
+      a: 45,
+      b: true,
+    }
+    typeEqualAssert<keyof typeof zz, string>(true)
+    typeEqualAssert<typeof zz.a, number|undefined>(true)
+    typeEqualAssert<typeof zz.b, number|boolean|undefined>(true)
+    typeEqualAssert<
+      json.FromMain<{ type: "object", properties: { a: { type: "number" } }, additionalProperties: { type: "boolean"} }>,
+      { readonly a?: number, readonly [v: string]: number|undefined }
+    >(true)
+    const r: { readonly a?: number } & { readonly [v in string]: json.Json } = { b: 56 }
+    assert.strictEqual(r.b, 56)
+    typeEqualAssert<
+      json.FromMain<{ type: "object", properties: { a: { type: "number" } }, additionalProperties: false }>,
+      { readonly a?: number }
+    >(true)
+    typeEqualAssert<json.FromMain<{ type: "array", items: false }>, ReadonlyArray<never>>(true)
+    const rr: json.FromMain<{ type: "object", properties: { a: { type: "number" } }, additionalProperties: false }> = { a: 56 }
+    typeEqualAssert<typeof rr.a, number|undefined>(true)
+    typeEqualAssert<keyof typeof rr, "a">(true)
+    const dfg: json.FromMain<{ type: "object", properties: { a: false } }> = { }
+    typeEqualAssert<typeof dfg.b, json.Json|undefined>(true)
+    typeEqualAssert<typeof dfg.a, undefined>(true)
+    const x98: json.FromMain<{ type: "object", required: ["a"] }> = { a: 5, b: 9 }
+    typeEqualAssert<typeof x98.a, json.Json>(true)
+    typeEqualAssert<keyof typeof x98, string>(true)
+    typeEqualAssert<json.FromMain<{ type: "object", required: ["a"] }>, { readonly a: json.Json }>(true)
+    typeEqualAssert<
+      json.FromMain<{ type: "object", required: ["a"], additionalProperties: false }>,
+      { readonly a: json.Json }
+    >(true)
+    const ytu: json.FromMain<{ type: "object", required: ["a"], additionalProperties: false }> = { a: 7 }
+    const ytu2: {} & { readonly a: json.Json } = { a: 5 }
+    typeEqualAssert<keyof typeof ytu2, "a">(true)
+    typeEqualAssert<keyof typeof ytu, "a">(true)
+    typeEqualAssert<json.FromMain<{ type: "object", additionalProperties: false }>, {}>(true)
+    const empty: json.FromMain<{ type: "object", additionalProperties: false }> = {}
+    typeEqualAssert<keyof typeof empty, never>(true)
+    /*
+    const s = schema.main({
+      type: ["object", "string"],
+      properties: {
+        a: { type: "boolean" }
+      },
+      required: ["a"],
+      additionalProperties: false,
+    })
+    */
+    const requiredA: json.FromMain<{
+      type: "object"
+      properties: {
+        a: { type: "boolean" }
+      }
+      required: ["a"]
+      additionalProperties: false
+    }> = { a: true }
+    typeEqualAssert<keyof typeof requiredA, "a">(true)
+    typeEqualAssert<
+      json.FromMain<{
+        type: "object",
+        properties: {
+          a: { type: "boolean" }
+        },
+        required: ["a"]
+      }>,
+      { readonly a: boolean }
     >(true)
   })
 })
-*/
