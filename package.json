@@ -35,8 +35,8 @@
     "mocha": "^5.2.0",
     "mocha-junit-reporter": "^1.18.0",
     "nyc": "^13.1.0",
-    "typescript": "^3.2.1",
-    "@types/node": "^10.12.11"
+    "typescript": "^3.2.2",
+    "@types/node": "^10.12.12"
   },
   "dependencies": {
     "@ts-common/json": "^0.1.6",

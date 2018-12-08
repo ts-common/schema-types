@@ -101,6 +101,7 @@ describe("schema", () => {
 
 describe("json", () => {
   it("Types", () => {
+    // const v: json.FromMain<true> =
     typeEqualAssert<json.FromMain<true>, json.Json>(true)
     typeEqualAssert<json.FromMain<false>, never>(true)
     typeEqualAssert<json.FromMain<{}>, json.Json>(true)
