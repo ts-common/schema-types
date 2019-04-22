@@ -1,17 +1,7 @@
-import * as tscSchema from "@ts-common/schema"
 import * as tuple from "@ts-common/tuple"
-
-export namespace meta {
-
-  export type Property<P, D = {}> =
-    unknown extends P ? D :
-    undefined extends P ? D :
-    P extends undefined ? D :
-    P
-
-  export type Equal<A, B> = A | B extends A & B ? true : false
-
-}
+import * as tscSchema from "@ts-common/schema"
+import * as meta from "@ts-common/meta"
+import * as json from "@ts-common/json"
 
 // https://tools.ietf.org/html/draft-handrews-json-schema-validation-01
 export namespace schema {
@@ -29,134 +19,89 @@ export namespace schema {
 
   export type MainObjectType =
     SimpleTypes |
-    ReadonlyArray<SimpleTypes>
+    readonly SimpleTypes[]
 
   export type MainObjectProperties = { readonly [k in string]?: Main }
 
-  export type String<K extends string> =
-    string extends K ? K : K
+  export namespace mainObjectProperties {
+    export type GetProperty<T extends MainObjectProperties, K extends keyof MainObjectProperties> =
+      meta.Property<MainObjectProperties, T, K>
+  }
 
   export type MainObject = {
     readonly type?: MainObjectType
     readonly items?: Main
     readonly additionalProperties?: Main
     readonly properties?: MainObjectProperties
-    readonly required?: ReadonlyArray<string>
+    readonly required?: readonly string[]
     readonly const?: json.Json
   }
 
   export namespace mainObject {
 
+    export type Property<
+      T extends MainObject,
+      K extends keyof MainObject,
+      D extends MainObject[K] = MainObject[K]
+    > =
+      meta.Property<MainObject, T, K, D>
+
     export type GetType<T extends MainObject> =
-      simpleTypes.FromMainObjectType<meta.Property<T["type"], SimpleTypes>>
+      simpleTypes.FromMainObjectType<Property<T, "type">>
 
-    export type GetItems<T extends MainObject> =
-      meta.Property<T["items"]>
+    export type GetItems<T extends MainObject> = Property<T, "items">
 
-    export type GetAdditionalProperties<T extends MainObject> =
-      meta.Property<T["additionalProperties"]>
+    export type GetAdditionalProperties<T extends MainObject> = Property<T, "additionalProperties">
 
-    export type GetProperties<T extends MainObject> =
-      meta.Property<T["properties"]>
+    export type GetProperties<T extends MainObject> = Property<T, "properties">
 
-    export type GetRequired<T extends MainObject> =
-      meta.Property<T["required"], []>
+    export type GetRequired<T extends MainObject> = meta.ArrayItem<Property<T, "required", []>>
 
-    export type GetConst<T extends MainObject> =
-      meta.Property<T["const"], json.Json>
+    export type GetConst<T extends MainObject> = Property<T, "const">
   }
 
   export type Main = MainObject|boolean
+}
+
+/*
+export namespace schema {
 
   // Bug: can't handle `required` because it depends on ReadonlyArray<string> which can't be
   // infered as ReadonlyArray<"..."|"..."|...>
   // export const main = <T extends Main>(v: T): T => v
 
-  export type NormProperties = { readonly [k in string]?: Norm }
-
-  export type NormObject = {
-    readonly type?: SimpleTypes
-    readonly items?: Norm
-    readonly additionalProperties?: Norm
-    readonly properties?: NormProperties
-    readonly required?: string
-    readonly const?: json.Json
-  }
-
-  export type Norm = NormObject|false
-
   export namespace norm {
-
-    // returns R extends SimpleTypes
-    export type GetType<T extends NormObject> = meta.Property<T["type"], SimpleTypes>
-
-    export type GetItems<T extends NormObject> = meta.Property<T["items"]>
-
-    export type GetAdditionalProperties<T extends NormObject> = meta.Property<T["additionalProperties"]>
-
-    export type GetProperties<T extends NormObject> = meta.Property<T["properties"]>
-
-    export type GetRequired<T extends NormObject> = meta.Property<T["required"], never>
-
-    export type GetConst<T extends NormObject> = meta.Property<T["const"], json.Json>
-
-    export type FromSimpleTypes<Type extends SimpleTypes> =
-      SimpleTypes extends Type ? {} :
-      { readonly type: Type }
 
     export type ItemsFromMainObject<Items extends Main> =
       {} extends Items ? {} :
       { readonly items: FromMain<Items> }
 
-    export type AdditionalPropertiesFromMainObject<AdditionalProperties extends MainObject> =
-      {} extends AdditionalProperties ? {} :
-      { readonly additionalProperties: FromMain<AdditionalProperties> }
-
     export type PropertiesFromMainObject<Properties extends MainObjectProperties> =
       {} extends Properties ? {} :
-      { readonly properties: { readonly [K in keyof Properties]: FromMain<meta.Property<Properties[K]>> } }
+      { readonly properties: {
+          readonly [K in keyof Properties]: FromMain<mainObjectProperties.GetProperty<Properties, K>>
+        }
+      }
 
     export type RequiredFromMainObject<Required extends ReadonlyArray<string>> =
       Required extends tuple.Tuple0 ? {} :
       Required extends ReadonlyArray<infer U> ? { readonly required: U } :
       {}
-
-    export type FromParameters<Type extends SimpleTypes, M extends MainObject> =
-      FromSimpleTypes<Type> &
-      ("array" extends Type ? ItemsFromMainObject<mainObject.GetItems<M>> : {}) &
-      ("object" extends Type ?
-        ( AdditionalPropertiesFromMainObject<mainObject.GetAdditionalProperties<M>> &
-          PropertiesFromMainObject<mainObject.GetProperties<M>> &
-          RequiredFromMainObject<mainObject.GetRequired<M>>
-        ):
-        {}
-      )
-
-    // returns T extends Norm
-    export type FromMainObject<T extends MainObject> =
-      FromParameters<mainObject.GetType<T>, T>
-
-    // returns T extends Norm
-    export type FromMain<T extends Main> =
-      T extends true ? {} :
-      T extends false ? false :
-      T extends MainObject ? FromMainObject<T> :
-      never // error
   }
 }
 
 export namespace json {
 
-  export interface JsonArray extends ReadonlyArray<Json>{}
+  export interface AnyArray extends ReadonlyArray<Any>{}
 
-  export type JsonObject = { readonly [k in string]?: Json }
+  export type AnyObject = { readonly [k in string]?: Any }
 
-  export type Json = boolean|string|null|number|JsonArray|JsonObject
+  export type Any = boolean|string|null|number|AnyArray|AnyObject
 
-  export interface SpecialArrayType<Items extends schema.NormObject> extends ReadonlyArray<FromNorm<Items>> {}
+  export interface ArrayOf<Items extends schema.NormObject> extends ReadonlyArray<FromNorm<Items>> {}
 
   export type ArrayType<Items extends schema.NormObject> =
-    {} extends Items ? JsonArray : SpecialArrayType<Items>
+    {} extends Items ? AnyArray : ArrayOf<Items>
 
   export type AdditionalPropertiesObject<AdditionalProperties extends schema.Norm> = {
     readonly [k in string]?: FromNorm<AdditionalProperties>
@@ -171,12 +116,12 @@ export namespace json {
     Properties extends schema.NormProperties,
     Required extends string
   > =
-    ( {} extends AdditionalProperties ? JsonObject :
+    ( {} extends AdditionalProperties ? AnyObject :
       AdditionalProperties extends false ? {} :
       AdditionalPropertiesObject<AdditionalProperties | meta.Property<Properties[keyof Properties]>>
     ) &
-    ({} extends Properties ? JsonObject : PropertiesObject<Properties>) &
-    ({ readonly [K in Required]: Json })
+    ({} extends Properties ? AnyObject : PropertiesObject<Properties>) &
+    ({ readonly [K in Required]: Any })
 
   export type SimpleTypes<S extends schema.SimpleTypes, N extends schema.NormObject> =
     S extends "array" ? ArrayType<schema.norm.GetItems<N>> :
@@ -200,3 +145,4 @@ export namespace json {
   export type FromMain<S extends schema.Main> =
     FromNorm<schema.norm.FromMain<S>>
 }
+*/

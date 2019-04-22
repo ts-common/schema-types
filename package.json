@@ -39,8 +39,10 @@
     "@types/node": "^10.12.12"
   },
   "dependencies": {
-    "@ts-common/json": "^0.1.6",
+    "@ts-common/json": "^0.2.0",
+    "@ts-common/meta": "^0.2.2",
     "@ts-common/schema": "^0.0.5",
+    "@ts-common/string-map": "^0.2.2",
     "@ts-common/tuple": "^0.0.5",
     "tslib": "^1.9.3"
   }
